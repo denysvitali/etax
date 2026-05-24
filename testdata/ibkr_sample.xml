@@ -1,0 +1,19 @@
+<FlexQueryResponse queryName="TaxReport" type="AF">
+  <FlexStatements count="1">
+    <FlexStatement accountId="U1234567" fromDate="20250101" toDate="20251231" period="LastYear" currency="CHF">
+      <SecuritiesInfo>
+        <SecurityInfo symbol="AAPL" isin="US0378331005" description="APPLE INC" assetCategory="STK" currency="USD"/>
+      </SecuritiesInfo>
+      <OpenPositions>
+        <OpenPosition symbol="AAPL" isin="US0378331005" description="APPLE INC" assetCategory="STK" quantity="100" markPrice="195.00" positionValue="19500.00" currency="USD" fxRateToBase="0.88" reportDate="20251231"/>
+      </OpenPositions>
+      <Trades>
+        <Trade symbol="AAPL" isin="US0378331005" description="APPLE INC" tradeDate="20250315" buySell="BUY" quantity="50" tradePrice="170.00" proceeds="-8500.00" currency="USD" fxRateToBase="0.88"/>
+      </Trades>
+      <CashTransactions>
+        <CashTransaction type="Dividends" symbol="AAPL" isin="US0378331005" description="AAPL CASH DIVIDEND" amount="25.00" currency="USD" fxRateToBase="0.88" dateTime="20250515"/>
+        <CashTransaction type="WithholdingTax" symbol="AAPL" isin="US0378331005" description="AAPL CASH DIVIDEND - US TAX" amount="-3.75" currency="USD" fxRateToBase="0.88" dateTime="20250515"/>
+      </CashTransactions>
+    </FlexStatement>
+  </FlexStatements>
+</FlexQueryResponse>

@@ -1,0 +1,5 @@
+etax
+*.pdf
+*.xml
+!/testdata/*.xml
+!/schemas/*.xml
