@@ -3,7 +3,7 @@ package ibkr
 import (
 	"encoding/xml"
 
-	"etax/internal/money"
+	"github.com/denysvitali/etax/internal/money"
 )
 
 type flexQueryResponse struct {

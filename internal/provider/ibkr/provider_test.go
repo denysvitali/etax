@@ -5,9 +5,9 @@ import (
 	"os"
 	"testing"
 
-	"etax/internal/domain"
-	"etax/internal/money"
-	"etax/internal/provider/ibkr"
+	"github.com/denysvitali/etax/internal/domain"
+	"github.com/denysvitali/etax/internal/money"
+	"github.com/denysvitali/etax/internal/provider/ibkr"
 )
 
 func TestParseNormalizesIBKRFlexStatement(t *testing.T) {

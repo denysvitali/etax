@@ -6,9 +6,9 @@ import (
 	"io"
 	"testing"
 
-	pdf417decoder "etax/internal/barcode"
-	"etax/internal/ech0196"
-	"etax/internal/pdf/pdf417ech"
+	pdf417decoder "github.com/denysvitali/etax/internal/barcode"
+	"github.com/denysvitali/etax/internal/ech0196"
+	"github.com/denysvitali/etax/internal/pdf/pdf417ech"
 )
 
 func TestBytesCreatesPDFWithBarcodeSegments(t *testing.T) {

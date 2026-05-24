@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"etax/internal/money"
+	"github.com/denysvitali/etax/internal/money"
 )
 
 const (

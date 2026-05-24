@@ -8,11 +8,11 @@ import (
 	"strconv"
 	"strings"
 
-	"etax/internal/domain"
-	"etax/internal/ech0196"
-	"etax/internal/kursliste"
-	"etax/internal/pdf"
-	"etax/internal/provider"
+	"github.com/denysvitali/etax/internal/domain"
+	"github.com/denysvitali/etax/internal/ech0196"
+	"github.com/denysvitali/etax/internal/kursliste"
+	"github.com/denysvitali/etax/internal/pdf"
+	"github.com/denysvitali/etax/internal/provider"
 )
 
 func New() http.Handler {
