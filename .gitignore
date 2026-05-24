@@ -1,5 +1,7 @@
-etax
+/etax
 *.pdf
 *.xml
 !/testdata/*.xml
 !/schemas/*.xml
+testdata/example-private.xml
+private/

@@ -1,11 +1,13 @@
 package ech0196
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"sort"
 	"strings"
 
 	"etax/internal/domain"
+	"etax/internal/kursliste"
 	"etax/internal/money"
 )
 
@@ -14,21 +16,65 @@ type ClientInfo struct {
 	LastName  string
 }
 
+type Options struct {
+	Kursliste *kursliste.Store
+}
+
 func FromReport(report *domain.Report, canton string, year int, client ClientInfo) (TaxStatement, error) {
+	return FromReportWithOptions(report, canton, year, client, Options{})
+}
+
+func FromReportWithOptions(report *domain.Report, canton string, year int, client ClientInfo, options Options) (TaxStatement, error) {
 	if report == nil {
 		return TaxStatement{}, fmt.Errorf("report is nil")
 	}
-	stmt := NewTaxStatement(fmt.Sprintf("%s-%s-%d", report.ProviderID, report.AccountID, year), canton, year)
+	if err := validateReportPeriod(report, year); err != nil {
+		return TaxStatement{}, err
+	}
+	stmt := NewTaxStatement(documentID(report, year), canton, year)
 	stmt.PeriodFrom = defaultString(report.PeriodFrom, stmt.PeriodFrom)
 	stmt.PeriodTo = defaultString(report.PeriodTo, stmt.PeriodTo)
 	stmt.Institution = Institution{Name: defaultString(report.InstitutionName, report.ProviderID), LEI: report.InstitutionLEI}
 	stmt.Clients = []Client{{ClientNumber: report.AccountID, FirstName: client.FirstName, LastName: client.LastName}}
-	stmt.ListOfSecurities = buildSecurities(report)
+	stmt.ListOfSecurities = buildSecurities(report, options.Kursliste)
 	updateTotals(&stmt)
 	return stmt, nil
 }
 
-func buildSecurities(report *domain.Report) Securities {
+func validateReportPeriod(report *domain.Report, year int) error {
+	for _, date := range []struct {
+		label string
+		value string
+	}{
+		{"periodFrom", report.PeriodFrom},
+		{"periodTo", report.PeriodTo},
+	} {
+		if date.value == "" {
+			continue
+		}
+		if len(date.value) < 4 || date.value[:4] != fmt.Sprintf("%04d", year) {
+			return fmt.Errorf("provider report %s=%s does not match tax year %d; export the IBKR Flex statement for %d-01-01 through %d-12-31", date.label, date.value, year, year, year)
+		}
+	}
+	return nil
+}
+
+func documentID(report *domain.Report, year int) string {
+	clientNumber := leftPad(trimAlnumUpper(report.AccountID), 14)
+	return fmt.Sprintf("CH%s%s%04d123101", organisationNumber(report), clientNumber, year)
+}
+
+func organisationNumber(report *domain.Report) string {
+	name := defaultString(report.InstitutionName, report.ProviderID)
+	if name == "" {
+		return "19999"
+	}
+	sum := sha256.Sum256([]byte(name))
+	hashPrefix := int(sum[0])<<16 | int(sum[1])<<8 | int(sum[2])
+	return fmt.Sprintf("19%03d", hashPrefix%1000)
+}
+
+func buildSecurities(report *domain.Report, kurslisteStore *kursliste.Store) Securities {
 	byISIN := map[string]*securityBuilder{}
 	for _, p := range report.Positions {
 		if p.ISIN == "" {
@@ -57,7 +103,7 @@ func buildSecurities(report *domain.Report) Securities {
 
 	depot := Depot{DepotNumber: report.AccountID}
 	for i, isin := range keys {
-		depot.Securities = append(depot.Securities, byISIN[isin].build(i+1, isin))
+		depot.Securities = append(depot.Securities, byISIN[isin].build(i+1, isin, kurslisteStore))
 	}
 	return Securities{Depots: []Depot{depot}}
 }
@@ -68,6 +114,11 @@ type securityBuilder struct {
 	cashflows []domain.CashFlow
 }
 
+type paymentEntry struct {
+	key     string
+	payment Payment
+}
+
 func builder(m map[string]*securityBuilder, isin string) *securityBuilder {
 	if m[isin] == nil {
 		m[isin] = &securityBuilder{}
@@ -75,18 +126,18 @@ func builder(m map[string]*securityBuilder, isin string) *securityBuilder {
 	return m[isin]
 }
 
-func (b *securityBuilder) build(id int, isin string) Security {
+func (b *securityBuilder) build(id int, isin string, kurslisteStore *kursliste.Store) Security {
 	name := isin
 	currency := "CHF"
 	category := "OTHER"
 	if b.position != nil {
-		name = defaultString(b.position.Name, b.position.Symbol, isin)
+		name = truncate(defaultString(b.position.Name, b.position.Symbol, isin), 60)
 		currency = defaultString(b.position.Currency, currency)
 		category = categoryFor(b.position.AssetCategory)
 	}
 	for _, cf := range b.cashflows {
 		if name == isin {
-			name = defaultString(cf.Name, cf.Symbol, isin)
+			name = truncate(defaultString(cf.Name, cf.Symbol, isin), 60)
 		}
 		if currency == "CHF" {
 			currency = defaultString(cf.Currency, currency)
@@ -94,7 +145,7 @@ func (b *securityBuilder) build(id int, isin string) Security {
 	}
 	sec := Security{
 		PositionID:       id,
-		ISIN:             isin,
+		ISIN:             validISIN(isin),
 		Country:          countryFromISIN(isin),
 		Currency:         currency,
 		QuotationType:    "PIECE",
@@ -103,6 +154,7 @@ func (b *securityBuilder) build(id int, isin string) Security {
 		SecurityType:     securityType(category, name),
 		SecurityName:     name,
 	}
+	enrichSecurity(&sec, kurslisteStore, isin)
 	if b.position != nil {
 		p := b.position
 		sec.TaxValue = &TaxValue{
@@ -116,7 +168,7 @@ func (b *securityBuilder) build(id int, isin string) Security {
 		}
 		sec.Stocks = append(sec.Stocks, Stock{
 			ReferenceDate:   defaultString(p.ReferenceDate, "0001-01-01"),
-			Mutation:        0,
+			Mutation:        false,
 			Name:            "Year-end balance",
 			QuotationType:   "PIECE",
 			Quantity:        p.Quantity,
@@ -145,64 +197,120 @@ func (b *securityBuilder) build(id int, isin string) Security {
 	return sec
 }
 
+func enrichSecurity(sec *Security, kurslisteStore *kursliste.Store, isin string) {
+	match, ok := kurslisteStore.LookupISIN(isin)
+	if !ok {
+		return
+	}
+	sec.ValorNumber = match.ValorNumber
+	sec.Country = defaultString(match.Country, sec.Country)
+	sec.Currency = defaultString(match.Currency, sec.Currency)
+	sec.SecurityCategory = defaultString(match.SecurityGroup, sec.SecurityCategory)
+	sec.SecurityType = defaultString(match.SecurityType, sec.SecurityType)
+	if shouldUseKurslisteName(sec.SecurityName, isin) {
+		sec.SecurityName = truncate(defaultString(match.SecurityName, sec.SecurityName), 60)
+	}
+	if nominalValue, err := money.FromString(match.NominalValue); match.NominalValue != "" && err == nil {
+		sec.NominalValue = nominalValue
+	}
+}
+
+func shouldUseKurslisteName(current, isin string) bool {
+	current = strings.TrimSpace(current)
+	return current == "" || strings.EqualFold(current, strings.TrimSpace(isin))
+}
+
 func paymentsFor(cashflows []domain.CashFlow, isin string) []Payment {
-	type key struct{ date, name string }
-	payments := map[key]*Payment{}
+	var payments []paymentEntry
 	for _, cf := range cashflows {
 		t := strings.ToUpper(cf.Type)
 		if !strings.Contains(t, "DIVIDEND") && !strings.Contains(t, "INTEREST") {
 			continue
 		}
 		amountCHF := cf.Amount.Abs().Mul(cf.FXToCHF)
-		k := key{date: cf.Date, name: defaultString(cf.Name, cf.Symbol, isin)}
-		payments[k] = &Payment{
+		payment := Payment{
 			PaymentDate:    cf.Date,
-			Name:           k.name,
+			Name:           truncate(defaultString(cf.Description, cf.Name, cf.Symbol, isin), 200),
+			QuotationType:  "PIECE",
 			Quantity:       money.Zero(),
 			AmountCurrency: cf.Currency,
 			Amount:         cf.Amount.Abs(),
 			ExchangeRate:   cf.FXToCHF,
 		}
 		if strings.HasPrefix(isin, "CH") {
-			payments[k].GrossRevenueA = amountCHF
+			payment.GrossRevenueA = amountCHF
 		} else {
-			payments[k].GrossRevenueB = amountCHF
+			payment.GrossRevenueB = amountCHF
 		}
+		payments = append(payments, paymentEntry{
+			key:     paymentMatchKey(cf),
+			payment: payment,
+		})
 	}
 	for _, cf := range cashflows {
 		if !strings.Contains(strings.ToUpper(cf.Type), "WITHHOLD") {
 			continue
 		}
-		k := key{date: cf.Date, name: defaultString(cf.Name, cf.Symbol, isin)}
-		if payments[k] == nil {
-			payments[k] = &Payment{PaymentDate: cf.Date, Name: k.name, AmountCurrency: cf.Currency, ExchangeRate: cf.FXToCHF}
+		taxCHF := cf.Amount.Neg().Mul(cf.FXToCHF)
+		entry := findPaymentEntry(payments, paymentMatchKey(cf))
+		if entry == nil {
+			payments = append(payments, paymentEntry{
+				key: paymentMatchKey(cf),
+				payment: Payment{
+					PaymentDate:    cf.Date,
+					Name:           truncate(defaultString(cf.Description, cf.Name, cf.Symbol, isin), 200),
+					QuotationType:  "PIECE",
+					AmountCurrency: cf.Currency,
+					ExchangeRate:   cf.FXToCHF,
+				},
+			})
+			entry = &payments[len(payments)-1]
 		}
-		taxCHF := cf.Amount.Abs().Mul(cf.FXToCHF)
 		if strings.HasPrefix(isin, "US") {
-			payments[k].AdditionalWithHoldingUSA = taxCHF
+			entry.payment.AdditionalWithHoldingUSA = entry.payment.AdditionalWithHoldingUSA.Add(taxCHF)
 		} else {
-			payments[k].WithHoldingTaxClaim = taxCHF
+			entry.payment.WithHoldingTaxClaim = entry.payment.WithHoldingTaxClaim.Add(taxCHF)
 		}
 	}
-	keys := make([]key, 0, len(payments))
-	for k := range payments {
-		keys = append(keys, k)
-	}
-	sort.Slice(keys, func(i, j int) bool {
-		if keys[i].date == keys[j].date {
-			return keys[i].name < keys[j].name
+	sort.SliceStable(payments, func(i, j int) bool {
+		if payments[i].payment.PaymentDate == payments[j].payment.PaymentDate {
+			return payments[i].payment.Name < payments[j].payment.Name
 		}
-		return keys[i].date < keys[j].date
+		return payments[i].payment.PaymentDate < payments[j].payment.PaymentDate
 	})
-	out := make([]Payment, 0, len(keys))
-	for _, k := range keys {
-		out = append(out, *payments[k])
+	out := make([]Payment, 0, len(payments))
+	for _, entry := range payments {
+		out = append(out, entry.payment)
 	}
 	return out
 }
 
+func findPaymentEntry(payments []paymentEntry, key string) *paymentEntry {
+	for i := range payments {
+		if payments[i].key == key {
+			return &payments[i]
+		}
+	}
+	return nil
+}
+
+func paymentMatchKey(cf domain.CashFlow) string {
+	return cf.Date + "\x00" + normalizedPaymentDescription(defaultString(cf.Description, cf.Name, cf.Symbol, cf.ISIN))
+}
+
+func normalizedPaymentDescription(s string) string {
+	s = strings.TrimSpace(strings.ToUpper(s))
+	if i := strings.Index(s, " - "); i >= 0 {
+		s = s[:i]
+	}
+	if i := strings.Index(s, " ("); i >= 0 {
+		s = s[:i]
+	}
+	return strings.Join(strings.Fields(s), " ")
+}
+
 func updateTotals(stmt *TaxStatement) {
-	var taxValue, gra, grb, wht money.Decimal
+	var taxValue, gra, grb, wht, usa money.Decimal
 	for _, depot := range stmt.ListOfSecurities.Depots {
 		for _, sec := range depot.Securities {
 			if sec.TaxValue != nil {
@@ -212,6 +320,7 @@ func updateTotals(stmt *TaxStatement) {
 				gra = gra.Add(p.GrossRevenueA)
 				grb = grb.Add(p.GrossRevenueB)
 				wht = wht.Add(p.WithHoldingTaxClaim)
+				usa = usa.Add(p.AdditionalWithHoldingUSA)
 			}
 		}
 	}
@@ -223,6 +332,7 @@ func updateTotals(stmt *TaxStatement) {
 	stmt.ListOfSecurities.TotalGrossRevenueA = gra
 	stmt.ListOfSecurities.TotalGrossRevenueB = grb
 	stmt.ListOfSecurities.TotalWithHoldingTaxClaim = wht
+	stmt.ListOfSecurities.TotalAdditionalWHTUSA = usa
 }
 
 func categoryFor(asset string) string {
@@ -251,7 +361,13 @@ func securityType(category, name string) string {
 		}
 		return "SHARE.COMMON"
 	case "BOND":
-		return "BOND.STRAIGHT"
+		if strings.Contains(name, "CONVERTIBLE") {
+			return "BOND.CONVERTIBLE"
+		}
+		if strings.Contains(name, "OPTION") {
+			return "BOND.OPTION"
+		}
+		return "BOND.BOND"
 	case "FUND":
 		return "FUND.DISTRIBUTION"
 	default:
@@ -259,15 +375,8 @@ func securityType(category, name string) string {
 	}
 }
 
-func mutationFor(side string) int {
-	switch strings.ToUpper(side) {
-	case "BUY":
-		return 1
-	case "SELL":
-		return 2
-	default:
-		return 0
-	}
+func mutationFor(side string) bool {
+	return strings.TrimSpace(side) != ""
 }
 
 func countryFromISIN(isin string) string {
@@ -277,6 +386,14 @@ func countryFromISIN(isin string) string {
 	return "US"
 }
 
+func validISIN(isin string) string {
+	isin = strings.TrimSpace(isin)
+	if len(isin) == 12 {
+		return isin
+	}
+	return ""
+}
+
 func defaultString(values ...string) string {
 	for _, v := range values {
 		if strings.TrimSpace(v) != "" {
@@ -284,4 +401,28 @@ func defaultString(values ...string) string {
 		}
 	}
 	return ""
+}
+
+func truncate(s string, max int) string {
+	if len(s) <= max {
+		return s
+	}
+	return s[:max]
+}
+
+func trimAlnumUpper(s string) string {
+	var b strings.Builder
+	for _, r := range strings.ToUpper(strings.TrimSpace(s)) {
+		if (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
+func leftPad(s string, width int) string {
+	if len(s) >= width {
+		return s[len(s)-width:]
+	}
+	return strings.Repeat("0", width-len(s)) + s
 }

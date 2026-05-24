@@ -52,6 +52,7 @@ type openPosition struct {
 	Description   string        `xml:"description,attr"`
 	AssetCategory string        `xml:"assetCategory,attr"`
 	Quantity      money.Decimal `xml:"quantity,attr"`
+	Position      money.Decimal `xml:"position,attr"`
 	CostBasis     money.Decimal `xml:"costBasisMoney,attr"`
 	CostPrice     money.Decimal `xml:"costBasisPrice,attr"`
 	MarkPrice     money.Decimal `xml:"markPrice,attr"`

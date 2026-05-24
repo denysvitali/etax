@@ -2,6 +2,7 @@ package ech0196
 
 import (
 	"encoding/xml"
+	"fmt"
 	"time"
 
 	"etax/internal/money"
@@ -52,16 +53,22 @@ type Securities struct {
 	TotalGrossRevenueA       money.Decimal `xml:"totalGrossRevenueA,attr"`
 	TotalGrossRevenueB       money.Decimal `xml:"totalGrossRevenueB,attr"`
 	TotalWithHoldingTaxClaim money.Decimal `xml:"totalWithHoldingTaxClaim,attr"`
+	TotalLumpSumTaxCredit    money.Decimal `xml:"totalLumpSumTaxCredit,attr"`
+	TotalNonRecoverableTax   money.Decimal `xml:"totalNonRecoverableTax,attr"`
+	TotalAdditionalWHTUSA    money.Decimal `xml:"totalAdditionalWithHoldingTaxUSA,attr"`
+	TotalGrossRevenueIUP     money.Decimal `xml:"totalGrossRevenueIUP,attr"`
+	TotalGrossRevenueConv    money.Decimal `xml:"totalGrossRevenueConversion,attr"`
 	Depots                   []Depot       `xml:"depot"`
 }
 
 type Depot struct {
-	DepotNumber string     `xml:"depotNumber,attr,omitempty"`
+	DepotNumber string     `xml:"depotNumber,attr"`
 	Securities  []Security `xml:"security"`
 }
 
 type Security struct {
 	PositionID       int           `xml:"positionId,attr"`
+	ValorNumber      string        `xml:"valorNumber,attr,omitempty"`
 	ISIN             string        `xml:"isin,attr,omitempty"`
 	Country          string        `xml:"country,attr"`
 	Currency         string        `xml:"currency,attr"`
@@ -88,6 +95,7 @@ type TaxValue struct {
 type Payment struct {
 	PaymentDate              string        `xml:"paymentDate,attr"`
 	Name                     string        `xml:"name,attr,omitempty"`
+	QuotationType            string        `xml:"quotationType,attr"`
 	Quantity                 money.Decimal `xml:"quantity,attr"`
 	AmountCurrency           string        `xml:"amountCurrency,attr"`
 	Amount                   money.Decimal `xml:"amount,attr"`
@@ -100,7 +108,7 @@ type Payment struct {
 
 type Stock struct {
 	ReferenceDate   string        `xml:"referenceDate,attr"`
-	Mutation        int           `xml:"mutation,attr"`
+	Mutation        bool          `xml:"mutation,attr"`
 	Name            string        `xml:"name,attr,omitempty"`
 	QuotationType   string        `xml:"quotationType,attr"`
 	Quantity        money.Decimal `xml:"quantity,attr"`
@@ -128,5 +136,5 @@ func NewTaxStatement(id, canton string, taxPeriod int) TaxStatement {
 }
 
 func dateFor(year int, suffix string) string {
-	return time.Date(year, 1, 1, 0, 0, 0, 0, time.UTC).Format("2006") + "-" + suffix
+	return fmt.Sprintf("%04d-%s", year, suffix)
 }

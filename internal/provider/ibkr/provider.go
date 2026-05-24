@@ -60,12 +60,16 @@ func (p *Provider) Parse(_ context.Context, r io.Reader) (*domain.Report, error)
 
 	for _, pos := range stmt.OpenPositions.Positions {
 		info := secInfo[pos.ISIN]
+		quantity := pos.Quantity
+		if quantity.IsZero() {
+			quantity = pos.Position
+		}
 		report.Positions = append(report.Positions, domain.Position{
 			Symbol:        firstNonEmpty(pos.Symbol, info.Symbol),
 			ISIN:          pos.ISIN,
 			Name:          firstNonEmpty(pos.Description, info.Description, pos.Symbol),
 			AssetCategory: firstNonEmpty(pos.AssetCategory, info.AssetCategory),
-			Quantity:      pos.Quantity,
+			Quantity:      quantity,
 			UnitPrice:     pos.MarkPrice,
 			Value:         toCHF(pos.Value, pos.Currency, pos.FXToBase),
 			Currency:      defaultString(pos.Currency, info.Currency),
