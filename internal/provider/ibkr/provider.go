@@ -8,8 +8,8 @@ import (
 	"io"
 	"strings"
 
-	"github.com/denysvitali/etax/internal/domain"
-	"github.com/denysvitali/etax/internal/money"
+	"github.com/etax-converter/etax/internal/domain"
+	"github.com/etax-converter/etax/internal/money"
 )
 
 const (

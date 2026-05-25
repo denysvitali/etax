@@ -6,9 +6,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/denysvitali/etax/internal/domain"
-	"github.com/denysvitali/etax/internal/kursliste"
-	"github.com/denysvitali/etax/internal/money"
+	"github.com/etax-converter/etax/internal/domain"
+	"github.com/etax-converter/etax/internal/kursliste"
+	"github.com/etax-converter/etax/internal/money"
 )
 
 type ClientInfo struct {

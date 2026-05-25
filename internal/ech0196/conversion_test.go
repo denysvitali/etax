@@ -9,11 +9,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/denysvitali/etax/internal/domain"
-	"github.com/denysvitali/etax/internal/ech0196"
-	"github.com/denysvitali/etax/internal/kursliste"
-	"github.com/denysvitali/etax/internal/money"
-	"github.com/denysvitali/etax/internal/provider/ibkr"
+	"github.com/etax-converter/etax/internal/domain"
+	"github.com/etax-converter/etax/internal/ech0196"
+	"github.com/etax-converter/etax/internal/kursliste"
+	"github.com/etax-converter/etax/internal/money"
+	"github.com/etax-converter/etax/internal/provider/ibkr"
 )
 
 func TestIBKRToECH0196Sample(t *testing.T) {
@@ -221,8 +221,8 @@ func TestIBKRToECH0196SampleValidatesAgainstOfficialXSD(t *testing.T) {
 	}
 }
 
-func TestDatalevelPublicIBKR2024BarcodeFixture(t *testing.T) {
-	f, err := os.Open("../../testdata/datalevel_ibkr_ech_2024.xml")
+func TestSyntheticECH2024Fixture(t *testing.T) {
+	f, err := os.Open("../../testdata/synthetic_ech_2024.xml")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -240,7 +240,7 @@ func TestDatalevelPublicIBKR2024BarcodeFixture(t *testing.T) {
 	assertEqual(t, "periodTo", got.PeriodTo, "2024-12-31")
 	assertEqual(t, "canton", got.Canton, "ZH")
 	if got.TotalTaxValue == "" || got.TotalGrossRevenueB == "" {
-		t.Fatal("public datalevel fixture is missing root totals")
+		t.Fatal("synthetic fixture is missing root totals")
 	}
 }
 

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<taxStatement xmlns="http://www.ech.ch/xmlns/eCH-0196/2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" minorVersion="21" id="CH00000000000123456782024123101" creationDate="2025-05-26T08:06:55.583" taxPeriod="2024" periodFrom="2024-01-01" periodTo="2024-12-31" country="CH" canton="ZH" totalTaxValue="1000.00" totalGrossRevenueA="0.00" totalGrossRevenueB="25.00" totalWithHoldingTaxClaim="0.00">
+  <institution name="Synthetic Fixture Bank"/>
+  <client clientNumber="SYNTHETICCLIENT" firstName="Sample" lastName="Person"/>
+  <listOfSecurities totalWithHoldingTaxClaim="0.00" totalGrossRevenueB="25.00" totalGrossRevenueA="0.00" totalTaxValue="1000.00" totalGrossRevenueConversion="0.00" totalGrossRevenueIUP="0.00" totalNonRecoverableTax="0.00" totalLumpSumTaxCredit="0.00">
+    <depot depotNumber="SYNTHETICDEPOT">
+      <security securityName="SYNTHETIC SECURITY" securityType="SHARE.COMMON" securityCategory="SHARE" nominalValue="1" quotationType="PIECE" currency="USD" country="US" isin="US0378331005" valorNumber="37833100" positionId="1">
+        <taxValue value="1000.00" unitPrice="100.00" balanceCurrency="USD" quantity="10" quotationType="PIECE" referenceDate="2024-12-31"/>
+        <payment grossRevenueB="25.00" exchangeRate="1.00" amount="25.00" name="Synthetic dividend" paymentDate="2024-05-15" quotationType="PIECE" quantity="10" amountCurrency="USD"/>
+      </security>
+    </depot>
+  </listOfSecurities>
+</taxStatement>

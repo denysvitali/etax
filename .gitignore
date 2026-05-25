@@ -2,6 +2,7 @@
 *.pdf
 *.xml
 !/testdata/*.xml
+!/internal/**/testdata/*.xml
 !/schemas/*.xml
 testdata/example-private.xml
 private/

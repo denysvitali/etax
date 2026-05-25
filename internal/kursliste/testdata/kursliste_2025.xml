@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<kursliste year="2025">
+  <share valorNumber="37833100" isin="US0378331005" securityGroup="SHARE" securityType="SHARE.COMMON" securityName="Apple Inc" country="US" currency="USD" nominalValue="1"/>
+  <fund valorNumber="92204274" isin="US9220427424" securityGroup="FUND" securityType="FUND.ETF" securityName="Vanguard Total World Stock ETF" country="US" currency="USD" nominalValue="1"/>
+</kursliste>
