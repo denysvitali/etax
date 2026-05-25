@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/denysvitali/etax/internal/domain"
 	"github.com/denysvitali/etax/internal/ech0196"
 	"github.com/denysvitali/etax/internal/kursliste"
 	"github.com/denysvitali/etax/internal/pdf"
@@ -55,20 +54,20 @@ func convert(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "year is required", http.StatusBadRequest)
 		return
 	}
-	report, err := p.Parse(context.Background(), file)
+	report, err := p.Parse(r.Context(), file)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	options := ech0196.Options{}
 	if path := strings.TrimSpace(r.FormValue("kursliste")); path != "" {
-		store, err := kursliste.Load(path, year)
+		store, err := kursliste.LoadForISINs(path, year, report.ISINs())
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 		options.Kursliste = store
-	} else if store, err := autoKursliste(r.Context(), year, reportISINs(report)); err == nil {
+	} else if store, err := autoKursliste(r.Context(), year, report.ISINs()); err == nil {
 		options.Kursliste = store
 	}
 	stmt, err := ech0196.FromReportWithOptions(report, r.FormValue("canton"), year, ech0196.ClientInfo{
@@ -200,31 +199,4 @@ func autoKursliste(ctx context.Context, year int, isins []string) (*kursliste.St
 		return nil, err
 	}
 	return kursliste.LoadForISINs(xmlPath, year, isins)
-}
-
-func reportISINs(report *domain.Report) []string {
-	if report == nil {
-		return nil
-	}
-	seen := map[string]bool{}
-	var isins []string
-	for _, position := range report.Positions {
-		if position.ISIN != "" && !seen[position.ISIN] {
-			seen[position.ISIN] = true
-			isins = append(isins, position.ISIN)
-		}
-	}
-	for _, trade := range report.Trades {
-		if trade.ISIN != "" && !seen[trade.ISIN] {
-			seen[trade.ISIN] = true
-			isins = append(isins, trade.ISIN)
-		}
-	}
-	for _, cashflow := range report.CashFlows {
-		if cashflow.ISIN != "" && !seen[cashflow.ISIN] {
-			seen[cashflow.ISIN] = true
-			isins = append(isins, cashflow.ISIN)
-		}
-	}
-	return isins
 }

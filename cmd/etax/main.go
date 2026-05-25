@@ -17,7 +17,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/denysvitali/etax/internal/barcode"
-	"github.com/denysvitali/etax/internal/domain"
 	"github.com/denysvitali/etax/internal/ech0196"
 	"github.com/denysvitali/etax/internal/kursliste"
 	"github.com/denysvitali/etax/internal/pdf"
@@ -102,7 +101,7 @@ func newConvertCommand() *cobra.Command {
 				return err
 			}
 			options := ech0196.Options{}
-			if store, source, err := loadKursliste(cmd.Context(), year, kurslistePath, kurslisteDir, autoKursliste, reportISINs(report)); err != nil {
+			if store, source, err := loadKursliste(cmd.Context(), year, kurslistePath, kurslisteDir, autoKursliste, report.ISINs()); err != nil {
 				if strings.TrimSpace(kurslistePath) != "" {
 					return err
 				}
@@ -206,33 +205,6 @@ func loadKursliste(ctx context.Context, year int, path, dir string, auto bool, i
 	}
 	store, err := kursliste.LoadForISINs(xmlPath, year, isins)
 	return store, xmlPath, err
-}
-
-func reportISINs(report *domain.Report) []string {
-	if report == nil {
-		return nil
-	}
-	seen := map[string]bool{}
-	var isins []string
-	for _, position := range report.Positions {
-		if position.ISIN != "" && !seen[position.ISIN] {
-			seen[position.ISIN] = true
-			isins = append(isins, position.ISIN)
-		}
-	}
-	for _, trade := range report.Trades {
-		if trade.ISIN != "" && !seen[trade.ISIN] {
-			seen[trade.ISIN] = true
-			isins = append(isins, trade.ISIN)
-		}
-	}
-	for _, cashflow := range report.CashFlows {
-		if cashflow.ISIN != "" && !seen[cashflow.ISIN] {
-			seen[cashflow.ISIN] = true
-			isins = append(isins, cashflow.ISIN)
-		}
-	}
-	return isins
 }
 
 func newDecodePDF417Command() *cobra.Command {

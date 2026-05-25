@@ -26,6 +26,34 @@ type Report struct {
 	CashFlows       []CashFlow
 }
 
+// ISINs returns unique non-empty ISINs in first-seen report order.
+func (r *Report) ISINs() []string {
+	if r == nil {
+		return nil
+	}
+
+	seen := map[string]bool{}
+	var isins []string
+	add := func(isin string) {
+		if isin == "" || seen[isin] {
+			return
+		}
+		seen[isin] = true
+		isins = append(isins, isin)
+	}
+
+	for _, position := range r.Positions {
+		add(position.ISIN)
+	}
+	for _, trade := range r.Trades {
+		add(trade.ISIN)
+	}
+	for _, cashflow := range r.CashFlows {
+		add(cashflow.ISIN)
+	}
+	return isins
+}
+
 type Position struct {
 	Symbol        string
 	ISIN          string
