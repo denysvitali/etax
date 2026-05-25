@@ -17,8 +17,8 @@ import (
 	"github.com/boombuler/barcode/code128"
 	"github.com/phpdave11/gofpdf"
 
-	"github.com/etax-converter/etax/internal/ech0196"
-	"github.com/etax-converter/etax/internal/pdf/pdf417ech"
+	"github.com/denysvitali/etax/internal/ech0196"
+	"github.com/denysvitali/etax/internal/pdf/pdf417ech"
 )
 
 const (

@@ -1,4 +1,4 @@
-module github.com/etax-converter/etax
+module github.com/denysvitali/etax
 
 go 1.24.0
 

@@ -16,14 +16,14 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
-	"github.com/etax-converter/etax/internal/barcode"
-	"github.com/etax-converter/etax/internal/domain"
-	"github.com/etax-converter/etax/internal/ech0196"
-	"github.com/etax-converter/etax/internal/kursliste"
-	"github.com/etax-converter/etax/internal/pdf"
-	"github.com/etax-converter/etax/internal/provider"
-	"github.com/etax-converter/etax/internal/provider/ibkr"
-	"github.com/etax-converter/etax/internal/server"
+	"github.com/denysvitali/etax/internal/barcode"
+	"github.com/denysvitali/etax/internal/domain"
+	"github.com/denysvitali/etax/internal/ech0196"
+	"github.com/denysvitali/etax/internal/kursliste"
+	"github.com/denysvitali/etax/internal/pdf"
+	"github.com/denysvitali/etax/internal/provider"
+	"github.com/denysvitali/etax/internal/provider/ibkr"
+	"github.com/denysvitali/etax/internal/server"
 )
 
 var log = logrus.New()

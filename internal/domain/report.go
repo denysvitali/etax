@@ -4,7 +4,7 @@ import (
 	"context"
 	"io"
 
-	"github.com/etax-converter/etax/internal/money"
+	"github.com/denysvitali/etax/internal/money"
 )
 
 type Provider interface {

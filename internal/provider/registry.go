@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/etax-converter/etax/internal/domain"
-	"github.com/etax-converter/etax/internal/provider/ibkr"
+	"github.com/denysvitali/etax/internal/domain"
+	"github.com/denysvitali/etax/internal/provider/ibkr"
 )
 
 func Registry() map[string]domain.Provider {

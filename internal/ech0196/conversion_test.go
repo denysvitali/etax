@@ -9,11 +9,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/etax-converter/etax/internal/domain"
-	"github.com/etax-converter/etax/internal/ech0196"
-	"github.com/etax-converter/etax/internal/kursliste"
-	"github.com/etax-converter/etax/internal/money"
-	"github.com/etax-converter/etax/internal/provider/ibkr"
+	"github.com/denysvitali/etax/internal/domain"
+	"github.com/denysvitali/etax/internal/ech0196"
+	"github.com/denysvitali/etax/internal/kursliste"
+	"github.com/denysvitali/etax/internal/money"
+	"github.com/denysvitali/etax/internal/provider/ibkr"
 )
 
 func TestIBKRToECH0196Sample(t *testing.T) {
